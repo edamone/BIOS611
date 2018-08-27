@@ -1,0 +1,46 @@
+---
+title: "Reproduce me."
+author: "Emily Damone"
+date: "August 27, 2018"
+output: html_document
+---
+
+#Linear regression#
+
+##Assumptions##
+
+Standard analysis of linear regression in based on the following *four assumptions*:
+
+1. Linear relation with fixed regressors
+
+2. Independence
+
+3. Constant variance
+
+4. Mean zero error
+
+These assumptions can be succinctly written as $Y_i=X_i^T \beta + \epsilon_i$, $\epsilon_i\sim^{iid} D(0,\sigma^2)$)
+
+#Example#
+using `mtcars` dataset, we fit a linear regression in `R`.
+
+```{r}
+out = lm(mpg ~ disp + wt, data = mtcars)
+
+```
+```{r, echo=F, warning=F}
+library(knitr)
+kable(summary(out)$coef, digits=2, caption="Regression table")
+
+```
+
+The variable `wt` has statistically significant association with `mpg`.
+
+Next, we present the residual plot.
+
+```{r, echo=F}
+plot(out, which=1)
+```
+
+
+residual plot

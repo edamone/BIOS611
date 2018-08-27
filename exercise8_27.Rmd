@@ -1,0 +1,25 @@
+---
+title: "BIOS611 Exercise Aug27"
+author: "Emily Damone"
+date: "August 27, 2018"
+output: html_document
+---
+```{r} 
+library(ggplot2)
+```
+
+
+1. 
+```{r}
+ggplot(data = mpg)+
+  geom_point()
+```
+
+When you run just `ggplot(data = mpg)` a blank plot appears, with no plot actually created.
+
+2.
+```{r}
+nrows(mpg)
+ncol(mpg)
+```
+
