@@ -191,7 +191,7 @@ ggplot(mpg, aes(x=displ, y=cty, color=displ<5))+
       geom_point()+
       geom_smooth(se=F)
     ```
-
+here's the first plot
 
     ![A single smooth line, transparency by `year`](`r "https://github.com/datasci611/datasci_src/blob/master/HW1P0306B.png?raw=true"`)
     
