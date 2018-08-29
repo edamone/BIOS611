@@ -188,17 +188,19 @@ ggplot(mpg, aes(x=displ, y=cty, color=displ<5))+
     
     ```{r, echo=TRUE, eval=TRUE}
     ggplot( data=mpg, aes(x=displ, y=hwy))+
-      geom_point()+
-      geom_smooth(se=F)
+      geom_point(aes(color=drv))+
+      geom_smooth(aes(linetype=drv),se=F)
     ```
-here's the first plot
+
 
     ![A single smooth line, transparency by `year`](`r "https://github.com/datasci611/datasci_src/blob/master/HW1P0306B.png?raw=true"`)
     
     Answer: 
     
     ```{r, echo=TRUE, eval=TRUE}
-
+    ggplot( data=mpg, aes(x=displ, y=hwy))+
+      geom_point(aes(color=drv, alpha=year))+
+      geom_smooth(se=F)
     ```
 
     
@@ -209,7 +211,10 @@ here's the first plot
     Answer: 
     
     ```{r, echo=TRUE, eval=TRUE}
-
+    ggplot( data=mpg, aes(x=displ, y=hwy, color=drv))+
+      geom_point()+
+      annotate("text", label="Max hwy = 44", x=2.5, y=44, color="black")
+    
     ```
 
 # Exercise 4
@@ -218,28 +223,25 @@ here's the first plot
     you rewrite the previous plot to use that geom function instead of the 
     stat function?
 
-    Answer: 
+    The default geom associated with `stat_summary()` is `geom_pointrange`. You can rewrite the code to say geom_pointrange(stat="summary") to use the geom function instead of the stat function.
 
-    ```{r}
-
-    ```
 
 2.  What does `geom_col()` do? How is it different to `geom_bar()`?
 
-    Answer: 
+    `geom_col()` has the default stat as `identity()` which requires the data to be processed into bar heights previously. `geom_bar()` has the default stat as `count()` which will handle counting the observations for each x value and create the bar heights independently.
 
-    ```{r}
-
-    ```
 
 3.  What variables does `stat_smooth()` compute? What parameters control
     its behaviour?
 
-    Answer: 
+    `stat_smooth()` calculates:
+    *y - predicted value
+    *ymin - lower confidence limit
+    *ymax - upper confidence limit
+    *se - standard error
+    
+    The parameter `method` controls its behavior.
 
-    ```{r}
-
-    ```
 
 # Exercise 5
 
@@ -250,49 +252,42 @@ here's the first plot
       geom_point()
     ```
 
-    Answer: 
+    The plot has many overlapping points. The `geom_jitter()` function could be added to the plot to slightly move the points with a standard error to understand clusters.
 
-    ```{r}
-
-    ```
 
 2.  What parameters to `geom_jitter()` control the amount of jittering?
 
-    Answer: 
-
-    ```{r}
-
-    ```
+    The parameters `width` and `height` control the amount of jittering in a plot.
+    
 
 3.  Compare and contrast `geom_jitter()` with `geom_count()`.
 
-    Answer: 
-
-    ```{r}
-
-    ```
+    `geom_jitter` adds random noise/error to each point on the plot. This allows the audience to understand where multiple points are clustered without them being on top of each other, but it does hurt the accuracy of the plot, especially if too much jitter is added. 
+    
+    `geom_count()` resizes points based on observation counts at eacch point. This doesn't change the accuracy (x and y points) on the plot at all, but if there is a high count at one point, a point close to it may be overlapped by the large point.
+    
+    Both are tools to help with overplotting.
 
 # Exercise 6
 
 1.  Turn a stacked bar chart into a pie chart using `coord_polar()`.
 
-    Answer: 
 
     ```{r}
-
+    ggplot(mpg, aes(x=factor(1),fill=class))+
+      geom_bar(width=1)+
+      coord_polar(theta="y")
     ```
 
 2.  What does `labs()` do? Read the documentation.
 
-    Answer: 
-
-    ```{r}
-
-    ```
+    `labs` is a function that adds labels for different titles and scales of the plot.
 
 3.  What does the plot below tell you about the relationship between city
     and highway mpg? Why is `coord_fixed()` important? What does 
     `geom_abline()` do?
+    
+    The plot shows a positive linear relationship between city mpg and highway mpg. `geom_abline()` draws straight line on the plot and `coord_fixed()` ensures the line drawn on the plot is a $45^{\circ}$ line which makes it easy to compare city and highway mileage.
     
     ```{r, fig.asp = 1, out.width = "50%"}
     ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) +
@@ -301,8 +296,3 @@ here's the first plot
       coord_fixed()
     ```
 
-    Answer: 
-
-    ```{r}
-
-    ```
