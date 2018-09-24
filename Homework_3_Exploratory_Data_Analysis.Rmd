@@ -1,0 +1,390 @@
+---
+  title: "BIOS 611 HW3 Exploratory Analysis, tibbles, and data import (Chapters 7, 10, and 11.2)"
+  author: "Emily Damone 730260511"
+  date: "`r format(Sys.time(), '%m/%d/%Y')`"
+  output: html_document
+---
+
+  This homework is due `Monday September 17th by 6pm`.  
+  Both `.Rmd` and `.html` files should be submitted.  
+  (This set of exercise is mostly taken from R for Data Science by Garrett Grolemund and Hadley Wickham.)
+  
+```{r, include = FALSE, warning=FALSE}
+library(tidyverse)
+library(nycflights13)
+library(ggstance)
+```
+
+
+# Exercise 1
+
+1.  Explore the distribution of `price`. Do you discover anything unusual
+    or surprising? (Hint: Carefully think about the `binwidth` and make sure
+    you try a wide range of values.)
+
+
+    ```{r}
+    ggplot2::diamonds %>%
+      ggplot()+
+      geom_histogram(aes(ggplot2::diamonds$price))+
+      xlab("price in US$")
+    ```
+    
+    
+The distribution looks approximately exponential. This doesn't surprise me as there are many diamonds that flood the market at lower prices and only few which are worth more. 
+
+2.  Compare and contrast `coord_cartesian()` vs `xlim()` or `ylim()` when
+    zooming in on a histogram.
+    
+`coord_cartesian()` will create the whole plot and then zoom in on the given portion of the plot specified, while `xlim()` and `ylim()` will only create the specified portion of the plot and not the rest.
+
+# Exercise 2
+
+    
+1.  There are several ways of getting complete data (i.e. ignoring the incomplete cases). 
+    Using each of the following functions, try to get complete data.
+
+```{r}
+    # Use this dataset
+    data.a = data.frame(no = 1:5, abc = letters[1:5], ABC = LETTERS[11:15], rand = rnorm(5))
+    data.a[3,3] <- data.a[2,1] <- NA
+    # A. na.omit
+    data.a.complete.a <- na.omit(data.a)
+    # B. complete.cases
+    data.a.complete.b <- data.a[complete.cases(data.a),]
+    
+    data.a
+    data.a.complete.a
+    data.a.complete.b
+```
+
+2.  What does `na.rm = TRUE` do in `mean()` and `sum()`?
+
+    `na.rm=TRUE` removes any missing values from the vector before either mean and sum are calculated.
+    
+
+3.  We want to see if there is a pattern of delay according to the scheduled departure time.
+    Criticize the following graph. (If you cannot notice the problem, go back to the example in
+    the note and see why they used `mutate` function. Note only a small sample was used for
+    convenience.)
+    
+    ```{r}
+    set.seed(1)
+    newdata = sample_n(nycflights13::flights, 1000)
+    newdata %>% ggplot(aes(sched_dep_time, dep_delay)) + geom_point()
+    ```
+
+  
+They didn't take out the missing values, nor were the scheduled departure times changed to be minutes after midnight (so there are never any values after 59 for each hour)
+    
+
+# Exercise 3
+
+1.  Use what you've learned to improve the visualisation of the departure times
+    of cancelled vs. non-cancelled flights. (Hint: normalize them.)
+
+ 
+
+    ```{r}
+    
+    nycflights13::flights %>% 
+  mutate(
+    cancelled = is.na(dep_time),
+    sched_hour = sched_dep_time %/% 100,
+    sched_min = sched_dep_time %% 100,
+    sched_dep_time = sched_hour + sched_min / 60
+  ) %>% 
+  ggplot(mapping = aes(x=cancelled, y=sched_dep_time)) + 
+    geom_boxplot()
+
+    ```
+
+2.  What variable in the diamonds dataset is most important for predicting
+    the price of a diamond? How is that variable correlated with cut?
+    Why does the combination of those two relationships lead to lower quality
+    diamonds being more expensive?
+
+
+```{r}
+pairs(diamonds)
+```
+
+From this plot, carot is most associated/important for predicting the price of a diamond. 
+
+```{r}
+ggplot(data=diamonds)+
+  geom_boxplot(aes(x=cut, y=carat))
+
+ggplot(data=diamonds)+
+  geom_point(aes(x=cut, y=carat))
+```
+
+Theres a lot of variablility within each cut for carat. There is a slights negative relationship between cut and carat. This can lead to lower quality diamonds being more expensive because smaller carat diamonds (which normally wouldn't sell for as much as a higher carat diamond) has a higher cut, making it more expensive.
+
+3.  Install the ggstance package, and create a horizontal boxplot. (Use `geom_boxploth()`.)
+    How does this compare to using `coord_flip()` in terms of syntax?
+
+
+```{r, warning=F}
+ggplot(data=diamonds)+
+  geom_boxploth(aes(y=cut, x=carat))
+```
+
+
+Using `coord_flip()` requires an extra line in code, along with thinking about where you want each variable on each axis and flipping it in the code, wereas when using `geom_boxploth()` the x and y axis are as written in the code.
+
+
+# Exercise 4
+
+1.  How could you rescale the count dataset (`diamonds %>% count(color, cut)`) 
+    to more clearly show the distribution of cut within colour, or colour within cut?
+
+You could create a proportion of cut within color or vice versa.
+
+```{r}
+
+diamonds %>%
+  count(color,cut) %>%
+  group_by(color) %>% 
+  mutate(prop_cut_in_col = n/sum(n))%>%
+  group_by(cut) %>%
+  mutate(prop_col_in_cut = n/sum(n))
+
+```
+
+2.  Use `geom_tile()` together with dplyr to explore how average flight
+    delays vary by destination and month of year.  (Hint: Summarize the data first.)
+    What makes the plot difficult to read? How could you improve it (an open question)?
+
+ 
+
+    ```{r}
+ flights %>%
+      group_by(month, dest) %>% 
+      summarise(dep_delay = mean(dep_delay, na.rm=T)) %>% 
+      ggplot(aes(x=factor(month), y=dest, fill=dep_delay))+
+      geom_tile()+
+      labs(x="Month", y="Destination", fill="Departure Delay")
+    
+    ```
+
+
+There are many things that make this plot difficult to read, but specifically the gradient of colors for departure delay as well as the overlap of all of the destinations on the y-axis makes it impossible to tell which airport has the best and worst delays.
+
+3.  Why is it slightly better to use `aes(x = color, y = cut)` rather
+    than `aes(x = cut, y = color)` in the following example (an open question)?
+
+    ```{r}
+    diamonds %>% 
+      count(color, cut) %>%  
+      ggplot(mapping = aes(x = color, y = cut)) +
+        geom_tile(mapping = aes(fill = n))
+    ```
+
+
+It can be hard to read some longer labels along the x-axis depending on the size of plot and length of label, but in this case it doesn't make a real difference. If the plot were much smaller or we had more categories for cut, it could be difficult to read. 
+
+# Exercise 5
+
+1.  Instead of summarising the conditional distribution with a boxplot, you
+    could use a frequency polygon. What do you need to consider when using
+    `cut_width()` vs `cut_number()`? How does that impact a visualisation of
+    the 2d distribution of `carat` and `price`?
+
+    Both of the cut arguments need to be considered for how many groups you want to split your variables into. You want to balance the number of bins for each between being too specific that noise is too visible and not enough bins which over-simplify or hide part of your distribution.
+
+    ```{r}
+    
+ggplot(data = diamonds, mapping = aes(color = cut_number(carat, 5), x = price)) +
+  geom_freqpoly() +
+  ylab("Carat")
+    
+ggplot(data = diamonds, mapping = aes(color = cut_width(carat, 0.5, boundary = 0), x = price)) +
+  geom_freqpoly() +
+  ylab("Carat")
+
+    ```
+
+The bins for the second plot may be too small, you can only read the data for 4 of the bins even though 10 are listed. Whereas each of the bins can be read clearly in the first plot.
+
+
+2.  Visualise the distribution of carat, partitioned by price. (Hint: consider a boxplot)
+
+
+
+```{r}
+ggplot(diamonds, aes(x=carat, y=cut_number(price,10)))+
+  geom_boxploth()+
+  labs(x="carat", y="price")
+
+
+```
+
+3.  How does the price distribution of very large diamonds compare to small 
+    diamonds? Is it as you expect, or does it surprise you?
+    (Hint: Assuming you want to do a linear regression, is there any violation?)
+    
+Large diamonds seem to vary in price much more than small diamonds, this surprises me slightly. I would expect the price to be higher for large diamonds, but you also have to take into account other factors such as cut and color as you consider diamond price. There would be a violation of constant variance if you wanted to complete a linear regression and would probably have to transform the data.
+
+4.  Combine two of the techniques you've learned to visualise the 
+    joint distribution of cut, carat, and price.
+
+
+```{r}
+ggplot(diamonds, aes(x=cut, y=price, col=cut_number(carat,5)))+
+  geom_boxplot()
+```
+
+5. Two dimensional plots reveal outliers that are not visible in one 
+   dimensional plots. For example, some points in the plot below have an 
+   unusual combination of `x` and `y` values, which makes the points outliers 
+   even though their `x` and `y` values appear normal when examined separately.
+  
+    ```{r, dev = "png"}
+    ggplot(data = diamonds) +
+      geom_point(mapping = aes(x = x, y = y)) +
+      coord_cartesian(xlim = c(4, 11), ylim = c(4, 11))
+    ```
+    
+    Why is a scatterplot a better display than a binned plot for this case?
+
+A scatterplot is better to display this because the relationship between x and y is so strong for most of the data, but there are some outliers that may have been missed or not seen if we used a binned plot.
+
+
+# Exercise 6
+
+1.  Compare and contrast the following operations on a `data.frame` and 
+    equivalent tibble. What is different? Why might the default data frame
+    behaviours cause you frustration?
+    
+```{r, eval = FALSE}
+df <- data.frame(abc = 1, xyz = "a")
+df$x
+df[, "xyz"]
+class(df[, c("abc", "xyz")])
+
+tib <- as.tibble(df)
+tib$x
+tib[,"xyz"]
+tib[,c("abc", "xyz")]
+
+```
+
+For a data frame, $x will finish the column name and return a column that starts with x. In this case it is fine for this example, but could return the wrong column if there were multiple variables that started with "x". A tibble with `$x` called returns an error because it needs the full variable name. `[,"xyz"]` returns a vector for a dataframe but returns a tibble for a tibble. `[, c("abc", "xyz")]` returns a data frame when used with a dataframe, but returns a tibble for a tibble. This can cause frustration with dataframe because if you call one variable it will simply return a vector but if you call multiple variables it returns a data frame. This can cause troubles when you want your code to hold for many different data types.
+
+2.  If you have the name of a variable stored in an object, e.g. `var <- "mpg"`,
+    how can you extract the reference variable from a tibble?
+    For example, you simply could have done `mtcars$mpg`. But later on if you 
+    want to extract other variables as well, say `cyl`, which is given as an object
+    `var`, you don't want to manually put the variable names by typing `mtcars$cyl`.
+    How would you do this without explicitly writing `"mpg"` or `"cyl"`?
+
+You can use a double bracket, `[[]]`.
+
+```{r, echo=F}
+newdata <- as.tibble(mtcars)
+var <- "mpg"
+newdata[["var"]]
+
+```
+
+3.  Practice referring to non-syntactic names in the following data frame by:
+  
+    ```{r}
+    newdata = tibble(`1` = rnorm(1:5), `2` = `1` + runif(5))
+    ```
+
+    1.  Extracting the variable called `1`.
+
+    
+
+```{r}
+newdata[["1"]]
+```
+
+    2.  Plotting a scatterplot of `1` vs `2`.
+
+
+    ```{r}
+    ggplot(newdata, aes(x='1', y='2'))+
+      geom_point()
+
+    ```
+
+    3.  Creating a new column called `3` which is `2` divided by `1`.
+        
+
+    ```{r}
+    newdata[['3']]=newdata[['2']]/newdata[['1']]
+    
+    ```
+
+    4.  Renaming the columns to `one`, `two` and `three`. 
+
+
+    ```{r}
+    names(newdata) <- c("one","two","three")
+    names(newdata)
+    ```
+
+4.  What does `tibble::enframe()` do? When might you use it?  
+    (How can you simply generate a tibble of two vectors (1 2 3 ... 26, a b c ... z)?)
+
+`enframe()` converts vectors with names to a single tibble containing all of the vectors. 
+```{r}
+
+num <- c(1:26)
+let <- letters[seq(1,26)]
+enframe(c(a=1,b=2,c=3,d=4,e=5,f=6,g=7,h=8,i=9,j=10,k=11,l=12,m=13,n=14,o=15,p=16,q=17,r=18,s=19,t=20,u=21,v=22,w=23,x=24,y=25,z=26))
+```
+
+
+
+# Exercise 7
+
+1.  What function would you use to read a file where fields were separated with  
+    "|"?
+    
+    You would use `read_delim()` with the `delim=` argument `="|"`.
+
+
+2.  If you want to read a file from the third line, how would you code using `read_csv()` or
+    `read_tsv()`?
+    
+    Using `read_csv()` you can use the `skiprows=` argument set equal to 2.
+    
+
+3.  Sometimes strings in a CSV file contain commas. To prevent them from
+    causing problems they need to be surrounded by a quoting character, like
+    `"` or `'`. By convention, `read_csv()` assumes that the quoting
+    character will be `"`, and if you want to change it you'll need to
+    use `read_delim()` instead. What arguments do you need to specify
+    to read the following text into a data frame?
+    (Hint: Sometimes special characters act as a wild card. e.g. `.` represents
+    any charaters, `*` stands for repetition, and so on. So,
+    in order for R to recognize special characters as they are not as a wild card, 
+    we need to put a back-slash `\` in front of the character.
+    e.g. `\.` does not mean everything, but it means `.`)
+    
+    ```{r, eval = FALSE}
+    "x,y\n1,'a,b'"
+    ```
+    
+    You can now use `read_csv(x, quote="'")` to say the quote used in this example is ' and not ".
+
+
+4.  Identify what is wrong with each of the following inline CSV files. 
+    What happens when you run the code?
+    
+    ```{r, eval = FALSE}
+    read_csv("a,b\n1,2,3\n4,5,6")
+    read_csv("a,b,c\n1,2\n1,2,3,4")
+    read_csv("a,b\n\"1")
+    ```
+
+
+In the first line of code, there are 3 columns, but only the first 2 are included in the first line, so the third column of lines 2 and 3 are dropped. 
+
+In the second line of code, there are 3 columns defined, but the second row only has 2 elements so the third element is NA and the third row has 4 elements so the forth element is dropped. 
+
+In the third line of code, the quotation around 1 is not completed, so it's unsure if it was supposed to be an integer or a character, R assumes it was a mistake and reads it as an integer. There is only one element in the second row, so the second element of row to is NA. 

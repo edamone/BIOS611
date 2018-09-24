@@ -1,0 +1,41 @@
+---
+title: "Untitled"
+author: "Emily Damone"
+date: "September 14, 2018"
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(plotly)
+library(gridExtra)
+library(knitr)
+titanic <- as.tibble(Titanic)
+```
+#2.
+
+The Titanic dataset included counts for survival on the titanic based on class, sex, and age. This included `r sum(titanic$n)` total people split among all categories of passengers and crew. Below, you can see the counts of all passengers separaged into Class and Survival. 
+
+```{r}
+as.tibble(Titanic)%>%
+  arrange(Class, Age)%>%
+  ggplot(aes(x=Class, y=n))+
+  geom_col(mapping=aes(fill=Survived))+
+  ggtitle("Counts of Titanic Passenger Survival by Class")
+```
+
+From here, I thought it would be interesting to look at the proportion of all of the passengers who did not survive, what classes were they from? 
+
+```{r}
+as.tibble(Titanic) %>%
+  filter(Survived == "No")%>%
+  mutate(tot_people = sum(n)) %>%
+  arrange(Class) %>% 
+  group_by(Class)%>%
+  mutate(class_tot = sum(n), class_prop = class_tot/tot_people)%>%
+  filter(row_number()==1) %>% 
+  select(Class, class_prop) %>%
+  kable()
+
+```
+
+As could be expected, the most highest class passengers had the least proportion of people lose their life and the proportion of life loss increases as you go down each class. It would be interesting to also see how sex and age impacted survival proportions on the titanic.

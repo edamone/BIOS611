@@ -1,0 +1,179 @@
+---
+title: "Project 1"
+author: "Emily Damone"
+date: "September 19, 2018"
+output:
+  html_document: default
+---
+```{r, include=F}
+library(tidyverse)
+library(plotly)
+library(gridExtra)
+library(knitr)
+titanic <- as.tibble(Titanic)
+```
+
+# 1.  ChickWeight
+
+The first dataset I looked at was a collection of observations of weight vs. age of chicks on different diets. The dataset included timeseries data for each chick at 12 timepoints which includes their weight and diet for 50 chicks. There are 4 diets assigned to each chick. The weight of chicks at each timepoint was approximately normal when looking at the histograms for each.
+
+To begin, I created a spaghetti plot for each chick to visualize their growth over time.
+
+```{r}
+plot1 <- ChickWeight %>%
+  group_by(Chick)%>%
+  ggplot(aes(Time, weight, col=as.factor(Chick)))+
+  geom_line()+
+  ggtitle("Days Since Birth v. Weight for each Chick")+
+  xlab("Days since Birth")+
+  ylab("Weight (gm)")
+
+ggplotly(plot1)
+```
+
+I arbitrarily picked a cutoff to distinguish between a big chick and small chick. I wanted to then understand if there was a relationship between weight growth at the beginning of time tracked. The cutoff was at 200, the approximate mean for ending weight of chicks. 
+
+```{r}  
+chicks1 <- ChickWeight%>%
+  group_by(Chick)%>%
+  mutate(end_weight = max(weight))%>%
+  mutate(big = ifelse(as.numeric(end_weight)>=200, 1,0))%>%
+  ggplot(aes(Time, weight, col=as.factor(Chick)))+
+  geom_line(aes(linetype=as.factor(big)))+
+  ggtitle("Days since Birth v. Weight for each Chick, Separated by big/small via end weight")+
+  xlab("Days since Birth")+
+  ylab("Weight (gm)")
+
+ggplotly(chicks1)
+```
+
+For future analysis, it would be interesting to test the difference of diets on each chick final weight as well as growth at midpoints throughout the timeseries data.
+
+#2.
+
+The Titanic dataset included counts for survival on the titanic based on class, sex, and age. This included `r sum(titanic$n)` total people split among all categories of passengers and crew. Below, you can see the counts of all passengers separaged into Class and Survival. 
+
+```{r}
+as.tibble(Titanic)%>%
+  arrange(Class, Age)%>%
+  ggplot(aes(x=Class, y=n))+
+  geom_col(mapping=aes(fill=Survived))+
+  ggtitle("Counts of Titanic Passenger Survival by Class")+
+  ylab("Passenger Count")
+```
+
+From here, I thought it would be interesting to look at the proportion of all of the passengers who did not survive, what classes were they from? 
+
+```{r}
+as.tibble(Titanic) %>%
+  filter(Survived == "No")%>%
+  mutate(tot_people = sum(n)) %>%
+  arrange(Class) %>% 
+  group_by(Class)%>%
+  mutate(class_tot = sum(n), class_prop = class_tot/tot_people)%>%
+  filter(row_number()==1) %>% 
+  select(Class, class_prop) %>%
+  kable()
+
+```
+
+#3. Swiss
+
+The swiss dataset includes fertility and socioeconomic indicators for all 47 French-speaking provinces of Switzerland, collected around 1888. Four of the variables were percentages of the population for factors such as proportion in agricultural ocupations, military examination results, and education. The dataset also includes information on fertility via a standard measure as well as infant mortality. For example, the 5 number summary for % of males involved in agricultural occupations is `r fivenum(swiss$Agriculture)`. 
+
+```{r}
+swiss1 <- ggplot(data=swiss, aes(x=Education, y=Examination, col=Agriculture))+
+  geom_point()+
+  geom_smooth()+
+  labs(main = "Relationship between Education % , Examination Score %, and Agriculture %")
+ggplotly(swiss1)
+```
+
+I thought it would be interesting to look at communities with less than average incidence for infant mortality and see how the average among those communities compares to the full sample for all of the variables. This is listed in the table below.
+
+```{r}
+orig_mean <- sapply(swiss, mean)
+filtered_mean <- swiss %>%
+  filter(Infant.Mortality <=20)%>%
+  sapply(mean)
+kable(orig_mean - filtered_mean)
+```
+
+In future analysis, it would be interesting to see if there are any statistically significant relationships between variables for these populations. I would run linear regressions to possibly find the best predictors for which communities would have the lowest infant mortality rates and possibly be able to find causes for mortality in these factors for communities.
+
+#4. US Judge Ratings
+
+The US Judge Rating dataset includes 47 ratings by lawyers of state judges in the US Superior Court. This data was released in 1977 by the New Haven Register. Each variable is a numeric on a scale from 1 to 10. Most of the variables have minimums around 5 and maximums around 9. These variables characterize various lawyers' opinions on judges regarding their demeanor, ability, and preparation for trial for example.
+
+```{r, warning=F}
+p1 <- ggplot(data=USJudgeRatings, aes(x=DMNR, y=INTG))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Demeanor")+
+  ylab("Integrity")
+
+p2 <- ggplot(data=USJudgeRatings, aes(x=DECI, y=INTG))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Prompt Decisions")+
+  ylab("Integrity")
+
+p3 <- ggplot(data=USJudgeRatings, aes(x=PREP, y=INTG))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Preparation for Trial")+
+  ylab("Integrity")
+
+p4 <- ggplot(data=USJudgeRatings, aes(x=ORAL, y=INTG))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Sound Oral Rulings")+
+  ylab("Integrity")
+
+grid.arrange(p1, p2, p3, p4, ncol=2)
+  
+
+ggplot(data=USJudgeRatings, aes(x=CONT))+
+  geom_histogram(binwidth=.5)+
+  geom_vline(xintercept =7.5)+
+  labs(main = "Proportion of Lawyer Contact with Judges per Judge", xlab="Number of Contacts")
+  
+median(USJudgeRatings$CONT)
+mean(USJudgeRatings$CONT)
+```
+
+Looking at the following plot (excluded for space) `rpairs(USJudgeRatings, main = "USJudgeRatings data")` the only variable pairs that deviate from the general positive relationship are those including number of contacts with the judge. I think it'll be interesting to look how the relationship holds when the lawyers have more interactions with the judges. I'll look at the same plots again after filtering out the bottom 50% of the data (based on number of contacts of lawyer with judge)
+
+```{r, warning=F}
+filtered_judge <- USJudgeRatings %>%
+  mutate(highcontact = ifelse(CONT>=7.5, 1,0))
+
+p1 <- ggplot(data=filtered_judge, aes(x=DMNR, y=INTG, col=highcontact))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Demeanor")+
+  ylab("Integrity")
+
+p2 <- ggplot(data=filtered_judge, aes(x=DECI, y=INTG, col=highcontact))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Prompt Decisions")+
+  ylab("Integrity")
+
+p3 <- ggplot(data=filtered_judge, aes(x=PREP, y=INTG, col=highcontact))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Preparation for Trial")+
+  ylab("Integrity")
+
+p4 <- ggplot(data=filtered_judge, aes(x=ORAL, y=INTG, col=highcontact))+
+  geom_point()+
+  geom_smooth()+
+  xlab("Sound Oral Rulings")+
+  ylab("Integrity")
+
+
+grid.arrange(p1, p2, p3, p4, ncol=2)
+```
+
+Future analysis can go many ways with this data, but I think a particually interesting form of analysis would be to see which of the variables have the greatest impact on the RTEN variable (if the judge is worth of retention). 
